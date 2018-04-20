@@ -112,12 +112,19 @@ class GitWrapper():
             return 0
 
         commands = []
-        commands.append('unset GIT_DIR')
+
+        # On Windows, bash command needs to be run using bash.exe. This assumes bash.exe
+        # (typically installed under C:\Program Files\Git\bin) is in the system PATH.
+        if platform.system().lower() == "windows":
+            commands.append('bash -c "unset GIT_DIR"')
+        else:
+            commands.append('unset GIT_DIR')
+
         commands.append('git clone --recursive ' + repo_config['url'] + ' -b ' + repo_config['branch'] + ' ' + repo_config['path'])
 
         # All commands need to success
         for command in commands:
-            res = ProcessWrapper().call(command, shell=True)
+            res = ProcessWrapper().call(command, shell=True, supressStderr=True)
 
             if res != 0:
                 logger.error("Command '%s' failed with exit code %s" % (command, res))
