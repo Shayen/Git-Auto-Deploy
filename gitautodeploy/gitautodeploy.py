@@ -137,11 +137,16 @@ class GitAutoDeploy(object):
 
     @staticmethod
     def create_daemon():
-        import os
+        import os, platform
+
+        if platform.system().lower() == "windows":
+            err_msg = "Daemon mode not support in windows."
+            logger.error(err_msg)
+            raise OSError(err_msg)
 
         try:
             # Spawn first child. Returns 0 in the child and pid in the parent.
-            pid = os.fork()
+            pid = os.fork() # Not work in window
         except OSError as e:
             raise Exception("%s [%d]" % (e.strerror, e.errno))
 
