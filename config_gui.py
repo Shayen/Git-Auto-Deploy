@@ -18,6 +18,8 @@ except ImportError:
 	from PySide.QtUiTools import *
 	from PySide import __version__
 
+from gui import syntax
+
 __app_version__ = '0.1.0 Alpha'
 # v0.1.0 alpha : init tool
 
@@ -27,7 +29,7 @@ TODO :
 [X] Read config.json
 [X] Link config.json to main GUI
 [X] Create/Update config.json via GUI
-[ ] Load repositories detail into table as widgets
+[X] Load repositories detail into table as widgets
 [ ] Dump modified repository as json data
 [ ] Run as service/stop service via GUI
 [ ] Check running service (require to run via window service)
@@ -62,7 +64,7 @@ class GAD_PreferenceUI( QMainWindow ):
 		self.ui.setWindowTitle('Git-auto-deploy preference v.' + str(__app_version__))
 
 		# Load config
-		self.CONFIG = self.loadConfig(config_file_path = "config.json")
+		self.CONFIG = self.loadConfig(config_file_path = "config.json.backup")
 
 		self._initUI()
 		self._initConnect()
@@ -70,6 +72,15 @@ class GAD_PreferenceUI( QMainWindow ):
 		self.ui.show()
 
 	def _initUI(self):
+
+		repo_table = self.ui.tableWidget_repositories
+		header = repo_table.horizontalHeader()
+		header.setResizeMode(0, QHeaderView.ResizeToContents) 	# Repo name
+		header.setResizeMode(1, QHeaderView.Stretch) 			# url
+		header.setResizeMode(2, QHeaderView.Stretch) 			# local parg
+		header.setResizeMode(3, QHeaderView.ResizeToContents) 	# current branch
+		header.setResizeMode(4, QHeaderView.ResizeToContents) 	# Last commit date
+		header.setResizeMode(5, QHeaderView.ResizeToContents) 	# Edit filters
 
 		# Http
 		self.ui.lineEdit_http_host.setText(self.CONFIG['http-host'])
@@ -133,7 +144,57 @@ class GAD_PreferenceUI( QMainWindow ):
 		return config
 
 	def setup_repositories(self, config):
-		pass
+
+		from gui import Repository
+		
+		if not config.has_key('repositories'):
+			print('config not have key \'repositories\'')
+			return false
+
+		# Loop row for each repositories
+		for row, repository in enumerate(config['repositories']) :
+
+			# Create repo object
+			repo_obj = Repository(repodata = repository, parent = self )
+
+			rowCount = self.ui.tableWidget_repositories.rowCount()
+			self.ui.tableWidget_repositories.setRowCount( rowCount + 1 )
+
+			# Insert to table widget
+			self.insert_data_to_repository_table(tablewidget = self.ui.tableWidget_repositories,
+				row = row,
+				repo = repo_obj)
+
+		return True
+
+	def insert_data_to_repository_table(self, tablewidget, row, repo):
+		'''
+		Insert given data and row
+
+		arg:
+			tablewidget : (QtGui.QTableWidget) 
+			row			: row (int)
+			repo 		: repo boject (model.repositoriy)
+
+		return:
+			None
+		'''
+
+		print repo.repo_name
+
+		tablewidget.setItem( row, 0, QTableWidgetItem(repo.repo_name	))
+		tablewidget.setItem( row, 1, QTableWidgetItem(repo.url			))
+		tablewidget.setItem( row, 2, QTableWidgetItem(repo.local_path	))
+		tablewidget.setItem( row, 3, QTableWidgetItem(repo.current_branch))
+		tablewidget.setItem( row, 4, QTableWidgetItem(repo.last_commit	))
+		tablewidget.setCellWidget( row, 5, repo.filters_button)
+
+		repo.filters_button.clicked.connect(lambda: self.filterEdit_onClicked(repo_obj = repo))
+
+		return True
+
+	def filterEdit_onClicked(self, repo_obj = ''):
+		print ('Repo name : ' + repo_obj.repo_name)
 
 	def saveConfig_to_file(self):
 		'''
@@ -203,7 +264,7 @@ class GAD_PreferenceUI( QMainWindow ):
 
 		print(json.dumps(config, indent= 2))
 
-		json.dump( obj = config, fp = open('config.json.new', 'w'), indent = 2 )
+		json.dump( obj = config, fp = open('config.json', 'w'), indent = 2 )
 
 
 	def loadConfig(self, config_file_path = "", myconfig = {}):
@@ -237,7 +298,6 @@ class GAD_PreferenceUI( QMainWindow ):
 
 		else : 
 			config.update(myconfig)
-
 
 		# Rename legacy config option names
 		config = rename_legacy_attribute_names(config)

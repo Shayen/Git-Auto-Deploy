@@ -607,6 +607,9 @@
             <verstretch>0</verstretch>
            </sizepolicy>
           </property>
+          <property name="editTriggers">
+           <set>QAbstractItemView::NoEditTriggers</set>
+          </property>
           <column>
            <property name="text">
             <string>Repository name</string>
