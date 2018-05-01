@@ -33,6 +33,7 @@ TODO :
 [ ] Dump modified repository as json data
 [ ] Run as service/stop service via GUI
 [ ] Check running service (require to run via window service)
+[ ] E-mail notification
 '''
 
 class GAD_PreferenceUI( QMainWindow ):
@@ -179,9 +180,6 @@ class GAD_PreferenceUI( QMainWindow ):
 		return:
 			None
 		'''
-
-		print repo.repo_name
-
 		tablewidget.setItem( row, 0, QTableWidgetItem(repo.repo_name	))
 		tablewidget.setItem( row, 1, QTableWidgetItem(repo.url			))
 		tablewidget.setItem( row, 2, QTableWidgetItem(repo.local_path	))
@@ -194,7 +192,32 @@ class GAD_PreferenceUI( QMainWindow ):
 		return True
 
 	def filterEdit_onClicked(self, repo_obj = ''):
+		'''
+			Call filter editor window
+
+			arg:
+				repo_obj : repository python object <Repository>
+		'''
+
+		from gui import tool_widget
+
 		print ('Repo name : ' + repo_obj.repo_name)
+
+		filter_edit_widget = tool_widget (parent = self.ui, 
+			modulename = repo_obj.repo_name, 
+			command = repo_obj.filters[0])
+
+		filter_edit_widget.call_settingWindow()
+
+	def ok_onclick(self):
+		self.saveConfig_to_file()
+		self.close()
+
+	def apply_onclick(self):
+		self.saveConfig_to_file()
+
+	def close_onclicke(self):
+		self.close()
 
 	def saveConfig_to_file(self):
 		'''
@@ -218,7 +241,6 @@ class GAD_PreferenceUI( QMainWindow ):
 		'web-ui-password'
 		'ssl-key'
 		'ssl-cert'
-
 		'''
 
 		config = {}
@@ -249,7 +271,8 @@ class GAD_PreferenceUI( QMainWindow ):
 		config['web-ui-auth-enabled']= self.ui.checkBox_enable_webui_auth.isChecked()
 		config['web-ui-require-https']= self.ui.checkBox_enable_webui_https.isChecked()
 		# Web-ui white list
-		# config['web-ui-whitelist']= self.ui.listWidget_webui_whitelist.items()
+		config['web-ui-whitelist']= [self.ui.listWidget_webui_whitelist.item(item_id).text() for item_id in xrange(
+			self.ui.listWidget_webui_whitelist.count())]
 		# Web-UI Auth
 		config['web-ui-username']= self.ui.lineEdit_webui_auth_username.text()
 		config['web-ui-password']= self.ui.lineEdit_webui_auth_password.text()
@@ -262,10 +285,11 @@ class GAD_PreferenceUI( QMainWindow ):
 
 		config = self.loadConfig(myconfig = config)
 
+		# Print config
 		print(json.dumps(config, indent= 2))
 
+		# Save config to config.json
 		json.dump( obj = config, fp = open('config.json', 'w'), indent = 2 )
-
 
 	def loadConfig(self, config_file_path = "", myconfig = {}):
 		'''
@@ -310,7 +334,7 @@ class GAD_PreferenceUI( QMainWindow ):
 def main():
 	app  = QApplication(sys.argv) 
 	form = GAD_PreferenceUI()
-	print (json.dumps(form.CONFIG, indent = 2))
+	# print (json.dumps(form.CONFIG, indent = 2))
 	app.exec_()
 
 if __name__ == '__main__':
